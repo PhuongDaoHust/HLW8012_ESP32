@@ -1,0 +1,7 @@
+{
+    "idf.adapterTargetName": "esp32",
+    "files.associations": {
+        "hlw8012_esp82.h": "c",
+        "hlw8012.h": "c"
+    }
+}

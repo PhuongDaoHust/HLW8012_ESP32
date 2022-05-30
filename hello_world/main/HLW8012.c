@@ -1,0 +1,269 @@
+#include <stdio.h>
+#include <stdint.h>
+#include "sdkconfig.h"
+#include "driver/gpio.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+#include "esp_system.h"
+#include "esp_spi_flash.h"
+#include "HLW8012.h"
+
+uint8_t _cf_pin;
+uint8_t _cf1_pin;
+uint8_t _sel_pin;
+
+float _current_resistor = R_CURRENT;
+float _voltage_resistor = R_VOLTAGE_HLW;
+float V_REF = V_REF_HLW;
+
+float _current_multiplier; // Unit: us/A
+float _voltage_multiplier; // Unit: us/V
+float _power_multiplier;   // Unit: us/W
+
+uint32_t _pulse_timeout = PULSE_TIMEOUT;    // Unit: us
+volatile uint32_t _voltage_pulse_width = 0; // Unit: us
+volatile uint32_t _current_pulse_width = 0; // Unit: us
+volatile uint32_t _power_pulse_width = 0;   // Unit: us
+volatile uint32_t _pulse_count = 0;
+
+float _current = 0;
+uint16_t _voltage = 0;
+uint16_t _power = 0;
+
+uint8_t _current_mode = 1;
+uint8_t _model = 0;
+volatile uint8_t _mode;
+
+bool _use_interrupts;
+
+volatile uint32_t _last_cf_interrupt = 0;
+volatile uint32_t _last_cf1_interrupt = 0;
+volatile uint32_t _first_cf1_interrupt = 0;
+
+void _calculateDefaultMultipliers();
+
+void HLW8012_checkCFSignal()
+{
+    if ((esp_timer_get_time() - _last_cf_interrupt) > _pulse_timeout)
+        _power_pulse_width = 0;
+}
+// system_get_time()
+void HLW8012_checkCF1Signal()
+{
+    if ((esp_timer_get_time() - _last_cf1_interrupt) > _pulse_timeout)
+    {
+        if (_mode == _current_mode)
+        {
+            _current_pulse_width = 0;
+        }
+        else
+        {
+            _voltage_pulse_width = 0;
+        }
+        HLW8012_toggleMode();
+    }
+}
+
+void HLW8012_init(unsigned char cf_pin, unsigned char cf1_pin, unsigned char sel_pin, unsigned char currentWhen, uint8_t model, bool use_interrupts)
+{
+    _cf_pin = cf_pin;
+    _cf1_pin = cf1_pin;
+    _sel_pin = sel_pin;
+    _current_mode = currentWhen;
+    _use_interrupts = use_interrupts;
+    gpio_reset_pin(_cf_pin | _cf1_pin | _sel_pin);
+   
+    gpio_set_direction(_cf_pin | _cf1_pin, GPIO_MODE_INPUT);
+    gpio_set_direction(_sel_pin, GPIO_MODE_OUTPUT);
+
+    _calculateDefaultMultipliers();
+
+    _mode = _current_mode;
+
+    gpio_set_level(_sel_pin, _mode);
+}
+
+void _calculateDefaultMultipliers()
+{
+    _current_multiplier = (1000000.0 * 512 * V_REF / _current_resistor / 24.0 / F_OSC);
+    _voltage_multiplier = (1000000.0 * 512 * V_REF * _voltage_resistor / 2.0 / F_OSC);
+    _power_multiplier = (1000000.0 * 128 * V_REF * V_REF * _voltage_resistor / _current_resistor / 48.0 / F_OSC);
+}
+
+void HLW8012_setMode(hlw8012_mode_t mode)
+{
+    _mode = (mode == MODE_CURRENT) ? _current_mode : 1 - _current_mode;
+    gpio_set_level(_sel_pin, _mode);
+    if (_use_interrupts)
+    {
+        _last_cf1_interrupt = _first_cf1_interrupt = esp_timer_get_time();
+    }
+}
+
+hlw8012_mode_t HLW8012_getMode()
+{
+    return (_mode == _current_mode) ? MODE_CURRENT : MODE_VOLTAGE;
+}
+
+hlw8012_mode_t HLW8012_toggleMode()
+{
+    hlw8012_mode_t new_mode = HLW8012_getMode() == MODE_CURRENT ? MODE_VOLTAGE : MODE_CURRENT;
+    HLW8012_setMode(new_mode);
+    return new_mode;
+}
+
+uint16_t HLW8012_getActivePower()
+{
+
+    HLW8012_checkCFSignal();
+
+    _power = (_power_pulse_width > 0) ? _power_multiplier / _power_pulse_width : 0;
+    return _power;
+}
+
+uint16_t HLW8012_getCurrent()
+{
+
+    // Power measurements are more sensitive to switch offs,
+    // so we first check if power is 0 to set _current to 0 too
+
+    HLW8012_getActivePower();
+
+    if (_power == 0)
+    {
+        _current_pulse_width = 0;
+    }
+    else
+    {
+        HLW8012_checkCF1Signal();
+    }
+    _current = (_current_pulse_width > 0) ? _current_multiplier / _current_pulse_width : 0;
+    return (uint16_t)(_current * 100);
+}
+
+uint16_t HLW8012_getVoltage()
+{
+    HLW8012_checkCF1Signal();
+
+    _voltage = (_voltage_pulse_width > 0) ? _voltage_multiplier / _voltage_pulse_width : 0;
+    return _voltage;
+}
+
+uint16_t HLW8012_getApparentPower()
+{
+    float current = HLW8012_getCurrent();
+    uint16_t voltage = HLW8012_getVoltage();
+    return voltage * current;
+}
+
+float HLW8012_getPowerFactor()
+{
+    uint16_t active = HLW8012_getActivePower();
+    uint16_t apparent = HLW8012_getApparentPower();
+    if (active > apparent)
+        return 1;
+    if (apparent == 0)
+        return 0;
+    return (float)active / apparent;
+}
+
+uint32_t HLW8012_getEnergy()
+{
+
+    /*
+    Pulse count is directly proportional to energy:
+    P = m*f (m=power multiplier, f = Frequency)
+    f = N/t (N=pulse count, t = time)
+    E = P*t = m*N  (E=energy)
+    */
+    return _pulse_count * _power_multiplier / 1000000l;
+}
+
+void HLW8012_resetEnergy()
+{
+    _pulse_count = 0;
+}
+
+void HLW8012_expectedCurrent(float value)
+{
+    if (_current == 0)
+        HLW8012_getCurrent();
+    if (_current > 0)
+        _current_multiplier *= (value / _current);
+}
+
+void HLW8012_expectedVoltage(uint16_t value)
+{
+    if (_voltage == 0)
+        HLW8012_getVoltage();
+    if (_voltage > 0)
+        _voltage_multiplier *= ((float)value / _voltage);
+}
+
+void HLW8012_expectedActivePower(uint16_t value)
+{
+    if (_power == 0)
+        HLW8012_getActivePower();
+    if (_power > 0)
+        _power_multiplier *= ((float)value / _power);
+}
+
+void HLW8012_resetMultipliers()
+{
+    _calculateDefaultMultipliers();
+}
+
+void HLW8012_setResistors(float current, float voltage_upstream, float voltage_downstream)
+{
+    if (voltage_downstream > 0)
+    {
+        _current_resistor = current;
+        _voltage_resistor = (voltage_upstream + voltage_downstream) / voltage_downstream;
+        _calculateDefaultMultipliers();
+    }
+}
+
+void HLW8012_cf_interrupt(void)
+{
+    uint32_t now = esp_timer_get_time();
+    _power_pulse_width = now - _last_cf_interrupt;
+    _last_cf_interrupt = now;
+    _pulse_count++;
+}
+
+void HLW8012_cf1_interrupt(void)
+{
+
+    uint32_t now = esp_timer_get_time();
+
+    if ((now - _first_cf1_interrupt) > _pulse_timeout)
+    {
+
+        uint32_t pulse_width;
+
+        if (_last_cf1_interrupt == _first_cf1_interrupt)
+        {
+            pulse_width = 0;
+        }
+        else
+        {
+            pulse_width = now - _last_cf1_interrupt;
+        }
+
+        if (_mode == _current_mode)
+        {
+            _current_pulse_width = pulse_width;
+        }
+        else
+        {
+            _voltage_pulse_width = pulse_width;
+        }
+
+        _mode = 1 - _mode;
+
+        gpio_set_level((_sel_pin), _mode);
+        _first_cf1_interrupt = now;
+    }
+
+    _last_cf1_interrupt = now;
+}
