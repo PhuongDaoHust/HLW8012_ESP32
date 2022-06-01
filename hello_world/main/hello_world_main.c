@@ -8,10 +8,10 @@
 #include "nvs_flash.h"
 #include "HLW8012.h"
 
-#define RELAY_PIN                       12
-#define SEL_PIN                         5
-#define CF1_PIN                         13
-#define CF_PIN                          14
+// #define RELAY_PIN                       4
+// #define SEL_PIN                         12
+// #define CF1_PIN                         14
+// #define CF_PIN                          5
 
 // Check values every 2 seconds
 #define UPDATE_TIME                     2000
@@ -20,7 +20,6 @@
 // This is the case for Itead's Sonoff POW, where a
 // the SEL_PIN drives a transistor that pulls down
 // the SEL pin in the HLW8012 when closed
-#define CURRENT_MODE                    HIGH
 
 // These are the nominal values for the resistors in the circuit
 #define CURRENT_RESISTOR                0.001
@@ -59,32 +58,37 @@ void calibrate() {
 void app_main(void)
 {
     ESP_ERROR_CHECK(nvs_flash_init());
-    
-    printf("Hello world!\n");
-    HLW8012_init(11,12,13,1,0,false);
-    /* Print chip information */
-    esp_chip_info_t chip_info;
-    esp_chip_info(&chip_info);
-    printf("This is %s chip with %d CPU cores, WiFi%s%s, ",
-            CONFIG_IDF_TARGET,
-            chip_info.cores,
-            (chip_info.features & CHIP_FEATURE_BT) ? "/BT" : "",
-            (chip_info.features & CHIP_FEATURE_BLE) ? "/BLE" : "");
+    printf("Pham Thi Yen Linh!\n");
+    HLW8012_init(CF_PIN,CF1_PIN,SEL_PIN,1 ,0,false);
+    HLW8012_setResistors(CURRENT_RESISTOR,VOLTAGE_RESISTOR_UPSTREAM,VOLTAGE_RESISTOR_DOWNSTREAM);
+    printf("[HLW] Default current multiplier : %0.2f\n",HLW8012_getCurrentMultiplier());
+    printf("[HLW] Default voltage multiplier : %0.2f\n",HLW8012_getVoltageMultiplier());
+    printf("[HLW] Default power multiplier : %0.2f \n",HLW8012_getPowerMultiplier());
 
-    printf("silicon revision %d, ", chip_info.revision);
+    calibrate();
+    printf("Pham Thi Yen Linh 1!\n");
 
-    printf("%dMB %s flash\n", spi_flash_get_chip_size() / (1024 * 1024),
-            (chip_info.features & CHIP_FEATURE_EMB_FLASH) ? "embedded" : "external");
+    while(1){
 
-    printf("Free heap: %d\n", esp_get_free_heap_size());
 
-    for (int i = 10; i >= 0; i--) {
-        printf("Restarting in %d seconds...\n", i);
-        vTaskDelay(1000 / portTICK_PERIOD_MS);
+    // This UPDATE_TIME should be at least twice the minimum time for the current or voltage
+    // signals to stabilize. Experimentally that's about 1 second.
+
+        printf("[HLW] Active Power (W)    : %d ",HLW8012_getActivePower());
+        printf("[HLW] Voltage (V)         : %d ",HLW8012_getVoltage());
+        printf("[HLW] Current (A)         : %d ",HLW8012_getCurrent()); 
+        printf("[HLW] Apparent Power (VA) : %d ",HLW8012_getApparentPower()); 
+        printf("[HLW] Power Factor        : %d \n",(int) (100 * HLW8012_getPowerFactor())); 
+        
+        // When not using interrupts we have to manually switch to current or voltage monitor
+        // This means that every time we get into the conditional we only update one of them
+        // while the other will return the cached value.
+        HLW8012_toggleMode();
+        printf("Time after :%lld\n",esp_timer_get_time());
+        vTaskDelay(2000/ portTICK_PERIOD_MS);
+        printf("Time before :%lld\n",esp_timer_get_time());
     }
-    // printf("Restarting now.\n");
-    // fflush(stdout);
-    // esp_restart();
+
 }
 
 

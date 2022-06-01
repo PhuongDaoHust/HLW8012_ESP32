@@ -4,6 +4,13 @@
 #include <stdio.h>
 #include <stdint.h>
 
+
+#define RELAY_PIN                       4
+#define SEL_PIN                         12
+#define CF1_PIN                         14
+#define CF_PIN                          5
+
+#define ESP_INTR_FLAG_DEFAULT           ((1ULL << CF_PIN) | (1ULL << CF1_PIN))
 #define V_REF_HLW               2.43
 #define V_REF_BL0               1.218
 
@@ -64,14 +71,13 @@ void HLW8012_expectedVoltage(uint16_t current);
 void HLW8012_expectedActivePower(uint16_t power);
 
 float HLW8012_getCurrentMultiplier();
-float HLW8012_getVoltageMultiplier() ;
+float HLW8012_getVoltageMultiplier();
 float HLW8012_getPowerMultiplier();
 
 void HLW8012_setCurrentMultiplier(float current_multiplier);
 void HLW8012_setVoltageMultiplier(float voltage_multiplier);
 void HLW8012_setPowerMultiplier(float power_multiplier);
 void HLW8012_resetMultipliers();
-
 
 #endif
 

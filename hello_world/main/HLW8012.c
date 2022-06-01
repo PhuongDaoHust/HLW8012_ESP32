@@ -40,6 +40,10 @@ volatile uint32_t _last_cf_interrupt = 0;
 volatile uint32_t _last_cf1_interrupt = 0;
 volatile uint32_t _first_cf1_interrupt = 0;
 
+float HLW8012_getCurrentMultiplier() { return _current_multiplier; };
+float HLW8012_getVoltageMultiplier() { return _voltage_multiplier; };
+float HLW8012_getPowerMultiplier() { return _power_multiplier; };
+
 void _calculateDefaultMultipliers();
 
 void HLW8012_checkCFSignal()
@@ -71,9 +75,11 @@ void HLW8012_init(unsigned char cf_pin, unsigned char cf1_pin, unsigned char sel
     _sel_pin = sel_pin;
     _current_mode = currentWhen;
     _use_interrupts = use_interrupts;
-    gpio_reset_pin(_cf_pin | _cf1_pin | _sel_pin);
-   
-    gpio_set_direction(_cf_pin | _cf1_pin, GPIO_MODE_INPUT);
+    gpio_reset_pin(_cf_pin); 
+    gpio_reset_pin(_cf1_pin);
+    gpio_reset_pin(_sel_pin);
+    gpio_set_direction(_cf_pin, GPIO_MODE_INPUT);
+    gpio_set_direction(_cf1_pin, GPIO_MODE_INPUT);
     gpio_set_direction(_sel_pin, GPIO_MODE_OUTPUT);
 
     _calculateDefaultMultipliers();
@@ -114,7 +120,6 @@ hlw8012_mode_t HLW8012_toggleMode()
 
 uint16_t HLW8012_getActivePower()
 {
-
     HLW8012_checkCFSignal();
 
     _power = (_power_pulse_width > 0) ? _power_multiplier / _power_pulse_width : 0;
@@ -266,4 +271,28 @@ void HLW8012_cf1_interrupt(void)
     }
 
     _last_cf1_interrupt = now;
+}
+
+void external_interrupt_init()
+{
+    // zero-initialize the config structure.
+    gpio_config_t io_conf = {};
+    // disable interrupt
+    io_conf.intr_type = GPIO_INTR_NEGEDGE;
+    // set as output mode
+    io_conf.mode = GPIO_MODE_INPUT;
+    // bit mask of the pins that you want to set,e.g.GPIO0/5
+    io_conf.pin_bit_mask = GPIO_INPUT_PIN_SEL;
+    // disable pull-up mode
+    io_conf.pull_up_en = 1;
+    gpio_config(&io_conf);
+    // change gpio intrrupt type for one pin
+    gpio_set_intr_type(BTN_RESET, GPIO_INTR_NEGEDGE);
+    // create a queue to handle gpio event from isr
+    gpio_evt_queue = xQueueCreate(10, sizeof(uint32_t));
+    // start gpio task
+    xTaskCreate(gpio_task_example, "gpio_task_example", 2048, NULL, 10, NULL);
+    gpio_install_isr_service(ESP_INTR_FLAG_DEFAULT);
+    gpio_isr_handler_add(BTN_RESET, gpio_isr_handler, (void *)(CF_PIN|CF1_PIN));
+    ESP_LOGI(TAG, "Config interrupt");
 }
