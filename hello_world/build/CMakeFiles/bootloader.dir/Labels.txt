@@ -1,13 +1,13 @@
 # Target labels
  bootloader
 # Source files and their labels
-E:/ESP32/HLW8012_ESP32/hello_world/build/CMakeFiles/bootloader
-E:/ESP32/HLW8012_ESP32/hello_world/build/CMakeFiles/bootloader.rule
-E:/ESP32/HLW8012_ESP32/hello_world/build/CMakeFiles/bootloader-complete.rule
-E:/ESP32/HLW8012_ESP32/hello_world/build/bootloader-prefix/src/bootloader-stamp/bootloader-install.rule
-E:/ESP32/HLW8012_ESP32/hello_world/build/bootloader-prefix/src/bootloader-stamp/bootloader-mkdir.rule
-E:/ESP32/HLW8012_ESP32/hello_world/build/bootloader-prefix/src/bootloader-stamp/bootloader-download.rule
-E:/ESP32/HLW8012_ESP32/hello_world/build/bootloader-prefix/src/bootloader-stamp/bootloader-update.rule
-E:/ESP32/HLW8012_ESP32/hello_world/build/bootloader-prefix/src/bootloader-stamp/bootloader-patch.rule
-E:/ESP32/HLW8012_ESP32/hello_world/build/bootloader-prefix/src/bootloader-stamp/bootloader-configure.rule
-E:/ESP32/HLW8012_ESP32/hello_world/build/bootloader-prefix/src/bootloader-stamp/bootloader-build.rule
+C:/HLW8012_ESP32/hello_world/build/CMakeFiles/bootloader
+C:/HLW8012_ESP32/hello_world/build/CMakeFiles/bootloader.rule
+C:/HLW8012_ESP32/hello_world/build/CMakeFiles/bootloader-complete.rule
+C:/HLW8012_ESP32/hello_world/build/bootloader-prefix/src/bootloader-stamp/bootloader-build.rule
+C:/HLW8012_ESP32/hello_world/build/bootloader-prefix/src/bootloader-stamp/bootloader-configure.rule
+C:/HLW8012_ESP32/hello_world/build/bootloader-prefix/src/bootloader-stamp/bootloader-download.rule
+C:/HLW8012_ESP32/hello_world/build/bootloader-prefix/src/bootloader-stamp/bootloader-install.rule
+C:/HLW8012_ESP32/hello_world/build/bootloader-prefix/src/bootloader-stamp/bootloader-mkdir.rule
+C:/HLW8012_ESP32/hello_world/build/bootloader-prefix/src/bootloader-stamp/bootloader-patch.rule
+C:/HLW8012_ESP32/hello_world/build/bootloader-prefix/src/bootloader-stamp/bootloader-update.rule

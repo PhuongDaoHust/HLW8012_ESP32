@@ -8,11 +8,6 @@
 #include "nvs_flash.h"
 #include "HLW8012.h"
 
-// #define RELAY_PIN                       4
-// #define SEL_PIN                         12
-// #define CF1_PIN                         14
-// #define CF_PIN                          5
-
 // Check values every 2 seconds
 #define UPDATE_TIME                     2000
 
@@ -57,7 +52,7 @@ void calibrate() {
 
 void app_main(void)
 {
-    ESP_ERROR_CHECK(nvs_flash_init());
+    // ESP_ERROR_CHECK(nvs_flash_init());
     printf("Pham Thi Yen Linh!\n");
     HLW8012_init(CF_PIN,CF1_PIN,SEL_PIN,1 ,0,false);
     HLW8012_setResistors(CURRENT_RESISTOR,VOLTAGE_RESISTOR_UPSTREAM,VOLTAGE_RESISTOR_DOWNSTREAM);
@@ -83,10 +78,9 @@ void app_main(void)
         // When not using interrupts we have to manually switch to current or voltage monitor
         // This means that every time we get into the conditional we only update one of them
         // while the other will return the cached value.
-        HLW8012_toggleMode();
-        printf("Time after :%lld\n",esp_timer_get_time());
+        // HLW8012_toggleMode();
+        // if(ssjs) 
         vTaskDelay(2000/ portTICK_PERIOD_MS);
-        printf("Time before :%lld\n",esp_timer_get_time());
     }
 
 }

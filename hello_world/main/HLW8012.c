@@ -9,7 +9,10 @@
 #include "esp_spi_flash.h"
 #include "HLW8012.h"
 
-#define PIN_ISR (CF_PIN|CF1_PIN)
+#define PIN_ISR (CF_PIN | CF1_PIN )
+#define GPIO_INPUT_CF_PIN     5
+#define GPIO_INPUT_CF1_PIN    14
+// #define PIN_ISR 0
 #define ESP_INTR_FLAG_DEFAULT 0 
 static xQueueHandle gpio_evt_queue = NULL;
 
@@ -80,12 +83,27 @@ void HLW8012_init(unsigned char cf_pin, unsigned char cf1_pin, unsigned char sel
     _sel_pin = sel_pin;
     _current_mode = currentWhen;
     _use_interrupts = use_interrupts;
-    gpio_reset_pin(_cf_pin); 
-    gpio_reset_pin(_cf1_pin);
-    gpio_reset_pin(_sel_pin);
-    gpio_set_direction(_cf_pin, GPIO_MODE_INPUT);
-    gpio_set_direction(_cf1_pin, GPIO_MODE_INPUT);
-    gpio_set_direction(_sel_pin, GPIO_MODE_OUTPUT);
+    // gpio_reset_pin(_cf_pin); 
+    // gpio_reset_pin(_cf1_pin);
+    // gpio_reset_pin(_sel_pin);
+    // gpio_set_direction(_cf_pin, GPIO_MODE_INPUT);
+    // gpio_set_direction(_cf1_pin, GPIO_MODE_INPUT);
+    // gpio_set_direction(_sel_pin, GPIO_MODE_OUTPUT);
+
+    //zero-initialize the config structure.
+    gpio_config_t io_output = {};
+    //disable interrupt
+    io_output.intr_type = GPIO_INTR_DISABLE;
+    //set as output mode
+    io_output.mode = GPIO_MODE_OUTPUT;
+    //bit mask of the pins that you want to set,e.g.GPIO18/19
+    io_output.pin_bit_mask = (1ULL<<SEL_PIN);
+    //disable pull-down mode
+    io_output.pull_down_en = 0;
+    //disable pull-up mode
+    io_output.pull_up_en = 0;
+    //configure GPIO with the given settings
+    gpio_config(&io_output);
 
     _calculateDefaultMultipliers();
 
@@ -239,18 +257,16 @@ void HLW8012_cf_interrupt(void)
     _power_pulse_width = now - _last_cf_interrupt;
     _last_cf_interrupt = now;
     _pulse_count++;
+    // printf("_pulse_count: %d \n",_pulse_count);
 }
 
 void HLW8012_cf1_interrupt(void)
 {
 
     uint32_t now = esp_timer_get_time();
-
     if ((now - _first_cf1_interrupt) > _pulse_timeout)
     {
-
         uint32_t pulse_width;
-
         if (_last_cf1_interrupt == _first_cf1_interrupt)
         {
             pulse_width = 0;
@@ -276,19 +292,18 @@ void HLW8012_cf1_interrupt(void)
     }
 
     _last_cf1_interrupt = now;
+    // printf("_last_cf1_interrupt: %d \n",_last_cf1_interrupt);
 }
 
 static void IRAM_ATTR gpio_isr_handler(void *arg)
 {
 
     uint32_t gpio_num = (uint32_t)arg;
-    printf("Lê Thanh Phương \n");
     xQueueSendFromISR(gpio_evt_queue, &gpio_num, NULL);
 }
 
 static void gpio_task_example(void *arg)
 {
-    // bool flag = false;
     uint32_t io_num;
     for (;;)
     {
@@ -310,7 +325,9 @@ static void gpio_task_example(void *arg)
             //     timer_set_counter_value(TIMER_GROUP_0, TIMER_0, 0);
             //     timer_pause(TIMER_GROUP_0, TIMER_0);
             // }
-            printf("Tieu Chon Chon \n");
+
+
+        printf("sffcsdfcd \n");
             HLW8012_cf_interrupt();
             HLW8012_cf1_interrupt();
             
@@ -332,13 +349,14 @@ void external_interrupt_init()
     io_conf.pull_up_en = 1;
     gpio_config(&io_conf);
     // change gpio intrrupt type for one pin
-    gpio_set_intr_type(PIN_ISR, GPIO_INTR_ANYEDGE);
+    gpio_set_intr_type(GPIO_INPUT_CF_PIN, GPIO_INTR_ANYEDGE);
+    gpio_set_intr_type(GPIO_INPUT_CF1_PIN, GPIO_INTR_ANYEDGE);
     // create a queue to handle gpio event from isr
     gpio_evt_queue = xQueueCreate(10, sizeof(uint32_t));
     // start gpio task
     xTaskCreate(gpio_task_example, "gpio_task_example", 2048, NULL, 10, NULL);
     gpio_install_isr_service(ESP_INTR_FLAG_DEFAULT);
-    gpio_isr_handler_add(PIN_ISR, gpio_isr_handler, (void *)PIN_ISR);
-    // gpio_isr_handler_add(CF1_PIN, gpio_isr_handler, (void *)CF1_PIN);
+    gpio_isr_handler_add(GPIO_INPUT_CF_PIN, gpio_isr_handler, (void *)GPIO_INPUT_CF_PIN);
+    gpio_isr_handler_add(GPIO_INPUT_CF1_PIN, gpio_isr_handler, (void *)GPIO_INPUT_CF1_PIN);
     printf("Config interrupt \n");
 }
