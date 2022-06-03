@@ -10,7 +10,7 @@
 #define CF1_PIN                         14
 #define CF_PIN                          5
 
-#define ESP_INTR_FLAG_DEFAULT           ((1ULL << CF_PIN) | (1ULL << CF1_PIN))
+#define GPIO_INPUT_PIN_SEL      ((1ULL << CF_PIN) | (1ULL << CF1_PIN))
 #define V_REF_HLW               2.43
 #define V_REF_BL0               1.218
 
@@ -24,11 +24,9 @@
 // Smart DGM outlet has 3x 680K
 // as per recomended circuit in datasheet
 #define R_VOLTAGE_HLW           ((5 * 470) + 1) //2821 //2350
-#define R_VOLTAGE_BL0        ((3 * 680) + 1) //1980 +1
 
 // Frequency of the HLW8012 internal clock
 #define F_OSC_HLW           (3579000)
-#define F_OSC_BL0           (2000000)
 
 // Maximum pulse with in microseconds
 // If longer than this pulse width is reset to 0
@@ -78,6 +76,8 @@ void HLW8012_setCurrentMultiplier(float current_multiplier);
 void HLW8012_setVoltageMultiplier(float voltage_multiplier);
 void HLW8012_setPowerMultiplier(float power_multiplier);
 void HLW8012_resetMultipliers();
+
+void external_interrupt_init();
 
 #endif
 

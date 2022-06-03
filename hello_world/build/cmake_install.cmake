@@ -1,4 +1,4 @@
-# Install script for directory: C:/esp/hello_world
+# Install script for directory: E:/ESP32/HLW8012_ESP32/hello_world
 
 # Set the install prefix
 if(NOT DEFINED CMAKE_INSTALL_PREFIX)
@@ -32,14 +32,9 @@ if(NOT DEFINED CMAKE_CROSSCOMPILING)
   set(CMAKE_CROSSCOMPILING "TRUE")
 endif()
 
-# Set default install directory permissions.
-if(NOT DEFINED CMAKE_OBJDUMP)
-  set(CMAKE_OBJDUMP "C:/Espressif/tools/xtensa-esp32-elf/esp-2021r2-patch2-8.4.0/xtensa-esp32-elf/bin/xtensa-esp32-elf-objdump.exe")
-endif()
-
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)
   # Include the install script for each subdirectory.
-  include("C:/esp/hello_world/build/esp-idf/cmake_install.cmake")
+  include("E:/ESP32/HLW8012_ESP32/hello_world/build/esp-idf/cmake_install.cmake")
 
 endif()
 
@@ -51,5 +46,5 @@ endif()
 
 string(REPLACE ";" "\n" CMAKE_INSTALL_MANIFEST_CONTENT
        "${CMAKE_INSTALL_MANIFEST_FILES}")
-file(WRITE "C:/esp/hello_world/build/${CMAKE_INSTALL_MANIFEST}"
+file(WRITE "E:/ESP32/HLW8012_ESP32/hello_world/build/${CMAKE_INSTALL_MANIFEST}"
      "${CMAKE_INSTALL_MANIFEST_CONTENT}")

@@ -67,7 +67,7 @@ void app_main(void)
 
     calibrate();
     printf("Pham Thi Yen Linh 1!\n");
-
+    external_interrupt_init();
     while(1){
 
 

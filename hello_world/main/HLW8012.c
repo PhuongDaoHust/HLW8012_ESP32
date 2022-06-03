@@ -4,9 +4,14 @@
 #include "driver/gpio.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
+#include "freertos/queue.h"
 #include "esp_system.h"
 #include "esp_spi_flash.h"
 #include "HLW8012.h"
+
+#define PIN_ISR (CF_PIN|CF1_PIN)
+#define ESP_INTR_FLAG_DEFAULT 0 
+static xQueueHandle gpio_evt_queue = NULL;
 
 uint8_t _cf_pin;
 uint8_t _cf1_pin;
@@ -273,12 +278,52 @@ void HLW8012_cf1_interrupt(void)
     _last_cf1_interrupt = now;
 }
 
+static void IRAM_ATTR gpio_isr_handler(void *arg)
+{
+
+    uint32_t gpio_num = (uint32_t)arg;
+    printf("Lê Thanh Phương \n");
+    xQueueSendFromISR(gpio_evt_queue, &gpio_num, NULL);
+}
+
+static void gpio_task_example(void *arg)
+{
+    // bool flag = false;
+    uint32_t io_num;
+    for (;;)
+    {
+        if (xQueueReceive(gpio_evt_queue, &io_num, portMAX_DELAY))
+        {
+            // if(flag == true){
+            // hard_control = !hard_control;
+            // gpio_set_level(LED,hard_control);
+            // }
+            // printf("GPIO[%d] intr, val: %d\n", io_num, gpio_get_level(io_num));
+            // if (gpio_get_level(io_num) == 0)
+            // {
+            //     timer_start(TIMER_GROUP_0, TIMER_0);
+            //     flag = true;
+            // }
+            // else
+            // {
+            //     flag = false;
+            //     timer_set_counter_value(TIMER_GROUP_0, TIMER_0, 0);
+            //     timer_pause(TIMER_GROUP_0, TIMER_0);
+            // }
+            printf("Tieu Chon Chon \n");
+            HLW8012_cf_interrupt();
+            HLW8012_cf1_interrupt();
+            
+        }
+    }
+}
+
 void external_interrupt_init()
 {
     // zero-initialize the config structure.
     gpio_config_t io_conf = {};
     // disable interrupt
-    io_conf.intr_type = GPIO_INTR_NEGEDGE;
+    io_conf.intr_type = GPIO_INTR_ANYEDGE;
     // set as output mode
     io_conf.mode = GPIO_MODE_INPUT;
     // bit mask of the pins that you want to set,e.g.GPIO0/5
@@ -287,12 +332,13 @@ void external_interrupt_init()
     io_conf.pull_up_en = 1;
     gpio_config(&io_conf);
     // change gpio intrrupt type for one pin
-    gpio_set_intr_type(BTN_RESET, GPIO_INTR_NEGEDGE);
+    gpio_set_intr_type(PIN_ISR, GPIO_INTR_ANYEDGE);
     // create a queue to handle gpio event from isr
     gpio_evt_queue = xQueueCreate(10, sizeof(uint32_t));
     // start gpio task
     xTaskCreate(gpio_task_example, "gpio_task_example", 2048, NULL, 10, NULL);
     gpio_install_isr_service(ESP_INTR_FLAG_DEFAULT);
-    gpio_isr_handler_add(BTN_RESET, gpio_isr_handler, (void *)(CF_PIN|CF1_PIN));
-    ESP_LOGI(TAG, "Config interrupt");
+    gpio_isr_handler_add(PIN_ISR, gpio_isr_handler, (void *)PIN_ISR);
+    // gpio_isr_handler_add(CF1_PIN, gpio_isr_handler, (void *)CF1_PIN);
+    printf("Config interrupt \n");
 }
