@@ -6,13 +6,12 @@
 
 
 #define RELAY_PIN                       4
-#define SEL_PIN                         12
-#define CF1_PIN                         14
-#define CF_PIN                          5
+#define SEL_PIN                         18
+#define CF1_PIN                         19
+#define CF_PIN                          21
 
 #define GPIO_INPUT_PIN_SEL      ((1ULL << CF_PIN) | (1ULL << CF1_PIN))
 #define V_REF_HLW               2.43
-#define V_REF_BL0               1.218
 
 // The factor of a 1mOhm resistor
 // as per recomended circuit in datasheet
@@ -23,8 +22,8 @@
 // Sonoff Pow has 5x 470K
 // Smart DGM outlet has 3x 680K
 // as per recomended circuit in datasheet
-#define R_VOLTAGE_HLW           ((5 * 470) + 1) //2821 //2350
-
+// #define R_VOLTAGE_HLW           ((5 * 470) + 1) //2821 //2350
+#define R_VOLTAGE_HLW       2821
 // Frequency of the HLW8012 internal clock
 #define F_OSC_HLW           (3579000)
 
@@ -54,7 +53,7 @@ void HLW8012_setMode(hlw8012_mode_t mode);
 hlw8012_mode_t HLW8012_getMode();
 hlw8012_mode_t HLW8012_toggleMode();
 
-uint16_t HLW8012_getCurrent(); // A x100 (dyvide by 100 for Amper)
+double HLW8012_getCurrent(); // A x100 (dyvide by 100 for Amper)
 uint16_t HLW8012_getVoltage(); 
 uint16_t HLW8012_getActivePower(); // moc czynna
 uint16_t HLW8012_getApparentPower(); // moc pozorna

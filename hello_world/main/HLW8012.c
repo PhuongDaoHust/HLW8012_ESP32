@@ -26,6 +26,7 @@ float V_REF = V_REF_HLW;
 
 float _current_multiplier; // Unit: us/A
 float _voltage_multiplier; // Unit: us/V
+
 float _power_multiplier;   // Unit: us/W
 
 uint32_t _pulse_timeout = PULSE_TIMEOUT;    // Unit: us
@@ -42,7 +43,9 @@ uint8_t _current_mode = 1;
 uint8_t _model = 0;
 volatile uint8_t _mode;
 
-bool _use_interrupts;
+bool _use_interrupts = true;
+
+uint8_t global =0;
 
 volatile uint32_t _last_cf_interrupt = 0;
 volatile uint32_t _last_cf1_interrupt = 0;
@@ -145,17 +148,17 @@ uint16_t HLW8012_getActivePower()
 {
     HLW8012_checkCFSignal();
 
-    _power = (_power_pulse_width > 0) ? _power_multiplier / _power_pulse_width : 0;
+    _power = (_power_pulse_width > 0) ? _power_multiplier / _power_pulse_width / 2: 0;
     return _power;
 }
 
-uint16_t HLW8012_getCurrent()
+double HLW8012_getCurrent()
 {
 
     // Power measurements are more sensitive to switch offs,
     // so we first check if power is 0 to set _current to 0 too
 
-    HLW8012_getActivePower();
+    // HLW8012_getActivePower();
 
     if (_power == 0)
     {
@@ -165,21 +168,20 @@ uint16_t HLW8012_getCurrent()
     {
         HLW8012_checkCF1Signal();
     }
-    _current = (_current_pulse_width > 0) ? _current_multiplier / _current_pulse_width : 0;
-    return (uint16_t)(_current * 100);
+    _current = (_current_pulse_width > 0) ? _current_multiplier / _current_pulse_width /2 : 0;
+    return _current;
 }
 
 uint16_t HLW8012_getVoltage()
 {
     HLW8012_checkCF1Signal();
-
-    _voltage = (_voltage_pulse_width > 0) ? _voltage_multiplier / _voltage_pulse_width : 0;
+    _voltage = (_voltage_pulse_width > 0) ? _voltage_multiplier / _voltage_pulse_width / 2 : 0;
     return _voltage;
 }
 
 uint16_t HLW8012_getApparentPower()
 {
-    float current = HLW8012_getCurrent();
+    double current = HLW8012_getCurrent();
     uint16_t voltage = HLW8012_getVoltage();
     return voltage * current;
 }
@@ -204,7 +206,7 @@ uint32_t HLW8012_getEnergy()
     f = N/t (N=pulse count, t = time)
     E = P*t = m*N  (E=energy)
     */
-    return _pulse_count * _power_multiplier / 1000000l;
+    return _pulse_count * _power_multiplier / 1000000l /2;
 }
 
 void HLW8012_resetEnergy()
@@ -300,7 +302,10 @@ static void IRAM_ATTR gpio_isr_handler(void *arg)
 
     uint32_t gpio_num = (uint32_t)arg;
     xQueueSendFromISR(gpio_evt_queue, &gpio_num, NULL);
+    if(gpio_num == CF_PIN) global =1;
+    else if(gpio_num == CF1_PIN) global =2;
 }
+
 
 static void gpio_task_example(void *arg)
 {
@@ -325,12 +330,10 @@ static void gpio_task_example(void *arg)
             //     timer_set_counter_value(TIMER_GROUP_0, TIMER_0, 0);
             //     timer_pause(TIMER_GROUP_0, TIMER_0);
             // }
-
-
-        printf("sffcsdfcd \n");
-            HLW8012_cf_interrupt();
+            if(global == 2) 
             HLW8012_cf1_interrupt();
-            
+            if(global == 1) 
+            HLW8012_cf_interrupt();
         }
     }
 }

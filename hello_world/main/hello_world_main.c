@@ -54,13 +54,13 @@ void app_main(void)
 {
     // ESP_ERROR_CHECK(nvs_flash_init());
     printf("Pham Thi Yen Linh!\n");
-    HLW8012_init(CF_PIN,CF1_PIN,SEL_PIN,1 ,0,false);
+    HLW8012_init(CF_PIN,CF1_PIN,SEL_PIN,1 ,0,true);
     HLW8012_setResistors(CURRENT_RESISTOR,VOLTAGE_RESISTOR_UPSTREAM,VOLTAGE_RESISTOR_DOWNSTREAM);
     printf("[HLW] Default current multiplier : %0.2f\n",HLW8012_getCurrentMultiplier());
     printf("[HLW] Default voltage multiplier : %0.2f\n",HLW8012_getVoltageMultiplier());
     printf("[HLW] Default power multiplier : %0.2f \n",HLW8012_getPowerMultiplier());
 
-    calibrate();
+    // calibrate();
     printf("Pham Thi Yen Linh 1!\n");
     external_interrupt_init();
     while(1){
@@ -71,7 +71,7 @@ void app_main(void)
 
         printf("[HLW] Active Power (W)    : %d ",HLW8012_getActivePower());
         printf("[HLW] Voltage (V)         : %d ",HLW8012_getVoltage());
-        printf("[HLW] Current (A)         : %d ",HLW8012_getCurrent()); 
+        printf("[HLW] Current (A)         : %f ",HLW8012_getCurrent()); 
         printf("[HLW] Apparent Power (VA) : %d ",HLW8012_getApparentPower()); 
         printf("[HLW] Power Factor        : %d \n",(int) (100 * HLW8012_getPowerFactor())); 
         
@@ -79,7 +79,6 @@ void app_main(void)
         // This means that every time we get into the conditional we only update one of them
         // while the other will return the cached value.
         // HLW8012_toggleMode();
-        // if(ssjs) 
         vTaskDelay(2000/ portTICK_PERIOD_MS);
     }
 
